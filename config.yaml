@@ -1,0 +1,90 @@
+bot:
+  napcat:
+    host: "127.0.0.1"  # 或者使用实际的 IP 地址
+    port: 3001         # NapCat 的实际端口
+    access_token: ""  # NapCat 的 token
+
+  admin:
+    super_users: []  # 超级管理员QQ号列表
+    group_admins: [] # 群管理员QQ号列表
+
+features:
+  chat:
+    enabled: true
+    provider: "openrouter"  # 可选: openai, openrouter
+    debug: false  # 是否启用调试模式，开启后会输出详细日志
+    openai:
+      api_key: ""  # OpenAI API密钥
+      model: ""
+      max_tokens: 2000
+      temperature: 0.7
+    openrouter:
+      api_key: ""  # OpenRouter API密钥
+      model: ""
+      site_url: ""  # 你的网站URL（可选）
+      site_name: ""  # 你的网站名称（可选）
+      max_tokens: 2000
+      temperature: 0.7
+    system_prompt: "你是一个猫娘喵喵"  # AI的人设提示词
+    access_control:
+      enabled: true  # 是否启用访问控制
+      whitelist_enabled: false  # 是否启用白名单
+      blacklist_enabled: false  # 是否启用黑名单
+      allowed_groups: []  # 允许使用的群号列表，为空表示允许所有群
+      allowed_friends: []  # 允许使用的好友QQ号列表，为空表示允许所有好友
+      blacklist_groups: []  # 禁止使用的群号列表
+      blacklist_users: []  # 禁止使用的用户QQ号列表
+
+  sign_in:
+    enabled: true
+    rewards:
+      min: 0  # 最小积分
+      max: 10  # 最大积分
+
+  memory:
+    enabled: true
+    max_history: 14  # 修改这个数字来调整保存的记忆条数
+    save_path: "data/memories"  # 记忆存储路径
+
+  # 新增自定义命令配置
+  commands:
+    enabled: true  # 是否启用命令功能
+    prefix: ""  # 命令前缀，空字符串表示无需前缀
+    case_sensitive: false  # 是否区分大小写
+    commands:
+      - name: "签到"  # 命令名称
+        enabled: true  # 是否启用此命令
+        plugin: "sign_in"  # 处理此命令的插件
+        function: "sign_in"  # 插件中处理此命令的函数
+        aliases: ["打卡", "check in"]  # 此命令的别名
+        description: "每日签到，获取积分"  # 命令描述
+        
+      - name: "帮助"  # 命令名称
+        enabled: true  # 是否启用此命令
+        plugin: "basic"  # 处理此命令的插件
+        function: "show_help"  # 插件中处理此命令的函数
+        aliases: ["help", "菜单"]  # 此命令的别名
+        description: "显示帮助信息"  # 命令描述
+        
+      - name: "我的积分"  # 命令名称
+        enabled: true  # 是否启用此命令
+        plugin: "sign_in"  # 处理此命令的插件
+        function: "show_points"  # 插件中处理此命令的函数
+        aliases: ["积分", "points", "查询积分"]  # 此命令的别名
+        description: "查询自己的积分"  # 命令描述
+        
+      - name: "清除记忆"  # 命令名称
+        enabled: true  # 是否启用此命令
+        plugin: "chat"  # 处理此命令的插件
+        function: "clear_memory"  # 插件中处理此命令的函数
+        aliases: ["忘记", "forget"]  # 此命令的别名
+        description: "清除与你的聊天记忆"  # 命令描述
+        admin_only: false  # 是否仅管理员可用
+
+plugins:
+  - name: "basic"  # 基础功能
+    enabled: true
+  - name: "chat"   # 聊天功能
+    enabled: true
+  - name: "sign_in"  # 签到功能
+    enabled: true 
