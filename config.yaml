@@ -2,7 +2,7 @@ bot:
   napcat:
     host: "127.0.0.1"  # 或者使用实际的 IP 地址
     port: 3001         # NapCat 的实际端口
-    access_token: ""  # NapCat 的 token
+    access_token: ""  # NapCat 的 token，不需要前缀Bearer
 
   admin:
     super_users: []  # 超级管理员QQ号列表
@@ -16,16 +16,23 @@ features:
     openai:
       api_key: ""  # OpenAI API密钥
       model: ""
-      max_tokens: 2000
+      max_tokens: 6000
       temperature: 0.7
     openrouter:
       api_key: ""  # OpenRouter API密钥
       model: ""
       site_url: ""  # 你的网站URL（可选）
       site_name: ""  # 你的网站名称（可选）
-      max_tokens: 2000
+      max_tokens: 6000
       temperature: 0.7
-    system_prompt: "你是一个猫娘喵喵"  # AI的人设提示词
+      # 添加备用模型列表，当主模型触发速率限制时使用
+      fallback_models:
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+    system_prompt: ""  # AI的人设提示词
     access_control:
       enabled: true  # 是否启用访问控制
       whitelist_enabled: false  # 是否启用白名单
@@ -43,7 +50,7 @@ features:
 
   memory:
     enabled: true
-    max_history: 14  # 修改这个数字来调整保存的记忆条数
+    max_history: 40  # 修改这个数字来调整保存的记忆条数
     save_path: "data/memories"  # 记忆存储路径
 
   # 新增自定义命令配置
@@ -80,6 +87,100 @@ features:
         aliases: ["忘记", "forget"]  # 此命令的别名
         description: "清除与你的聊天记忆"  # 命令描述
         admin_only: false  # 是否仅管理员可用
+        
+      - name: "撤回"  # 命令名称
+        enabled: true  # 是否启用此命令
+        plugin: "chat"  # 处理此命令的插件
+        function: "withdraw"  # 插件中处理此命令的函数
+        aliases: ["withdraw"]  # 此命令的别名
+        description: "撤回指定编号的消息"  # 命令描述
+        admin_only: false  # 是否仅管理员可用
+        
+      - name: "测试"  # 命令名称
+        enabled: true  # 是否启用此命令
+        plugin: "basic"  # 处理此命令的插件
+        function: "test"  # 插件中处理此命令的函数
+        aliases: ["test"]  # 此命令的别名
+        description: "测试命令功能是否正常"  # 命令描述
+        admin_only: false  # 是否仅管理员可用
+        
+      # 新增额外功能命令
+      - name: "天气"
+        enabled: true
+        plugin: "extra_features"
+        function: "get_weather"
+        aliases: ["weather"]
+        description: "查询指定城市的天气信息，示例：天气 北京"
+        
+      - name: "运势"
+        enabled: true
+        plugin: "extra_features"
+        function: "get_fortune"
+        aliases: ["fortune", "今日运势"]
+        description: "查询今日运势"
+        
+      - name: "早安"
+        enabled: true
+        plugin: "extra_features"
+        function: "morning_greeting"
+        aliases: ["morning", "good_morning"]
+        description: "早安问候，记录今天第几个说早安"
+        
+      - name: "晚安"
+        enabled: true
+        plugin: "extra_features"
+        function: "night_greeting"
+        aliases: ["night", "good_night"]
+        description: "晚安问候，记录今天第几个说晚安"
+        
+      - name: "图片"
+        enabled: true
+        plugin: "extra_features"
+        function: "get_random_image"
+        aliases: ["pic", "image"]
+        description: "获取随机二次元图片，可指定类别，如：图片 女生/男生/风景/壁纸/萌宠"
+        
+      - name: "点歌"
+        enabled: true
+        plugin: "extra_features"
+        function: "search_music"
+        aliases: ["music", "song"]
+        description: "搜索并分享音乐，示例：点歌 周杰伦"
+        
+      - name: "地震"
+        enabled: true
+        plugin: "extra_features"
+        function: "check_earthquake"
+        aliases: ["earthquake"]
+        description: "查询最新地震信息"
+        
+      - name: "新闻"
+        enabled: true
+        plugin: "extra_features"
+        function: "get_news"
+        aliases: ["news"]
+        description: "获取今日热点新闻"
+        
+      - name: "历史上的今天"
+        enabled: true
+        plugin: "extra_features"
+        function: "get_today_events"
+        aliases: ["event", "事件"]
+        description: "查询历史上的今天发生的事件"
+        
+      - name: "设置位置"
+        enabled: true
+        plugin: "extra_features"
+        function: "set_user_location"
+        aliases: ["set_location"]
+        description: "设置默认天气查询位置，示例：设置位置 北京"
+
+      - name: "作者信息"
+        enabled: false
+        plugin: "none"
+        function: "none"
+        aliases: ["none"]
+        description: "作者Ciallo QQ:3688442118"
 
 plugins:
   - name: "basic"  # 基础功能
@@ -87,4 +188,6 @@ plugins:
   - name: "chat"   # 聊天功能
     enabled: true
   - name: "sign_in"  # 签到功能
+    enabled: true
+  - name: "extra_features" # 额外功能
     enabled: true 

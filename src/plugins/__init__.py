@@ -167,10 +167,10 @@ class PluginManager:
             user_id: 用户ID
             group_id: 群ID，私聊消息为None
         """
-        command = cmd_info["command"]
+        command = cmd_info["command"]  # 实际的命令，如"签到"
         args = cmd_info["args"]
         plugin_name = cmd_info["plugin"]
-        function_name = cmd_info["function"]
+        function_name = cmd_info["function"]  # 需要调用的函数名，如"sign_in"
         admin_only = cmd_info["admin_only"]
         
         # 检查是否仅管理员可用
@@ -190,8 +190,11 @@ class PluginManager:
             return
             
         try:
-            # 调用命令处理函数
-            reply = await plugin.execute_command(function_name, args, user_id, group_id)
+            # 重要修改：将实际命令传递给插件，而不是函数名
+            # 因为我们已经修改了插件的execute_command方法来处理命令名称
+            logger.debug(f"执行命令: {command}, 插件: {plugin_name}, 函数: {function_name}, 参数: {args}")
+            reply = await plugin.execute_command(command, args, user_id, group_id)
+            
             if reply:
                 if group_id:
                     await self.bot.api.send_group_msg(group_id=group_id, message=reply)

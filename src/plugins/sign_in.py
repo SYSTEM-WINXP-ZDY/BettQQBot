@@ -28,12 +28,27 @@ class SignInPlugin(Plugin):
         logger.info("签到插件已卸载")
         
     async def execute_command(self, command: str, args: str, user_id: int, group_id: Optional[int] = None) -> str:
-        """执行命令"""
-        if command == "sign_in":
+        """执行命令
+        
+        Args:
+            command: 命令名称或函数名称
+            args: 命令参数
+            user_id: 用户ID
+            group_id: 群ID，私聊消息为None
+            
+        Returns:
+            命令执行结果
+        """
+        logger.debug(f"SignInPlugin处理命令: {command}, 参数: {args}")
+        
+        # 根据命令名称或函数名称执行对应的命令
+        if command in ["sign_in", "签到", "打卡", "check in"]:
             return await self._do_sign_in(user_id, group_id)
-        elif command == "show_points":
+        elif command in ["show_points", "我的积分", "积分", "points", "查询积分"]:
             return await self._show_points(user_id)
-        return f"未知的命令: {command}"
+        else:
+            logger.warning(f"未知的签到插件命令: {command}")
+            return f"未知的命令: {command}"
         
     async def _do_sign_in(self, user_id: int, group_id: Optional[int] = None) -> str:
         """执行签到"""
@@ -41,13 +56,24 @@ class SignInPlugin(Plugin):
         user_data = self._load_user_data(user_id)
         today = datetime.datetime.now().strftime("%Y-%m-%d")
         
+        # 初始化好感度
+        if "favorability" not in user_data:
+            user_data["favorability"] = 0
+            
+        # 初始化累计签到天数
+        if "total_sign_days" not in user_data:
+            user_data["total_sign_days"] = 0
+        
         if user_data.get("last_sign_in") == today:
             days = user_data.get("continuous_days", 1)
-            return f"今天已经签到过了喵~\n当前积分: {user_data.get('points', 0)}，连续签到: {days}天"
+            total_days = user_data.get("total_sign_days", 0)
+            favor = user_data.get("favorability", 0)
+            return f"今天已经签到过了喵~\n当前积分: {user_data.get('points', 0)}，连续签到: {days}天\n累计签到: {total_days}天，好感度: {favor}"
             
         # 计算连续签到天数
         last_date = user_data.get("last_sign_in", "")
         continuous_days = user_data.get("continuous_days", 0)
+        total_sign_days = user_data.get("total_sign_days", 0) + 1  # 增加累计签到天数
         
         if last_date:
             # 判断昨天是否签到
@@ -66,13 +92,19 @@ class SignInPlugin(Plugin):
         if continuous_days > 1:
             bonus = min(continuous_days * 0.1, 2.0)  # 最多翻倍
             reward = int(reward * (1 + bonus))
+        
+        # 增加好感度奖励
+        favor_gain = random.randint(1, 3)  # 每次签到随机增加1-3点好感度
+        favorability = user_data.get("favorability", 0) + favor_gain
             
         # 更新用户数据
         points = user_data.get("points", 0) + reward
         user_data.update({
             "last_sign_in": today,
             "continuous_days": continuous_days,
-            "points": points
+            "total_sign_days": total_sign_days,
+            "points": points,
+            "favorability": favorability
         })
         
         # 保存数据
@@ -83,6 +115,22 @@ class SignInPlugin(Plugin):
         if continuous_days > 1:
             reply += f"（连续签到 {continuous_days} 天，奖励增加）"
         reply += f"\n当前积分: {points}"
+        reply += f"\n累计签到: {total_sign_days}天"
+        reply += f"\n好感度: {favorability} (+{favor_gain})"
+        
+        # 好感度提示
+        if favorability >= 100:
+            reply += "\n（好感度已满，主人对我很满意喵~）"
+        elif favorability >= 80:
+            reply += "\n（主人很喜欢我喵~）"
+        elif favorability >= 50:
+            reply += "\n（主人开始喜欢我了喵~）"
+        elif favorability >= 30:
+            reply += "\n（主人对我的好感提升了喵~）"
+        elif favorability >= 10:
+            reply += "\n（主人对我略有好感喵~）"
+        else:
+            reply += "\n（主人还不太了解我喵...）"
         
         return reply
         
@@ -91,9 +139,27 @@ class SignInPlugin(Plugin):
         user_data = self._load_user_data(user_id)
         points = user_data.get("points", 0)
         continuous_days = user_data.get("continuous_days", 0)
+        total_sign_days = user_data.get("total_sign_days", 0)
+        favorability = user_data.get("favorability", 0)
         last_sign_in = user_data.get("last_sign_in", "从未签到")
         
-        return f"积分查询结果喵~\n当前积分: {points}\n连续签到: {continuous_days}天\n上次签到: {last_sign_in}"
+        result = f"积分查询结果喵~\n当前积分: {points}\n连续签到: {continuous_days}天\n累计签到: {total_sign_days}天\n好感度: {favorability}\n上次签到: {last_sign_in}"
+        
+        # 好感度提示
+        if favorability >= 100:
+            result += "\n（好感度已满，主人对我很满意喵~）"
+        elif favorability >= 80:
+            result += "\n（主人很喜欢我喵~）"
+        elif favorability >= 50:
+            result += "\n（主人开始喜欢我了喵~）"
+        elif favorability >= 30:
+            result += "\n（主人对我的好感提升了喵~）"
+        elif favorability >= 10:
+            result += "\n（主人对我略有好感喵~）"
+        else:
+            result += "\n（主人还不太了解我喵...）"
+            
+        return result
         
     def _load_user_data(self, user_id: int) -> Dict[str, Any]:
         """加载用户数据"""

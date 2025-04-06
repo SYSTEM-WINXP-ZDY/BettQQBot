@@ -17,6 +17,7 @@ class API:
         self.base_url = f"http://{self.host}:{self.port}"
         self.api_timeout = 30.0
         
+        # 请求回应映射
         self._echo_callbacks = {}
         
     async def _create_session(self):
@@ -31,6 +32,7 @@ class API:
             
     async def call_api(self, action: str, **params):
         """通过WebSocket调用API"""
+        # 使用WebSocket连接发送请求
         if not self.bot.handler.connected or not self.bot.handler.ws:
             logger.error(f"WebSocket未连接，无法调用API: {action}")
             return None
@@ -42,12 +44,15 @@ class API:
             "echo": echo
         }
         
+        # 创建一个Future来接收响应
         future = asyncio.get_event_loop().create_future()
         self._echo_callbacks[echo] = future
         
         try:
+            # 通过WebSocket发送请求
             await self.bot.handler.ws.send(json.dumps(data))
-
+            
+            # 等待响应，超时处理
             try:
                 result = await asyncio.wait_for(future, timeout=self.api_timeout)
                 return result.get("data")

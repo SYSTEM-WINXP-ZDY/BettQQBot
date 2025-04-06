@@ -42,11 +42,23 @@ class MemoryManager:
         
     def _save_memories_to_file(self, file_path: str, memories: List[Dict[str, Any]]) -> bool:
         try:
+            # 确保目录存在
+            dir_path = os.path.dirname(file_path)
+            logger.debug(f"确保记忆目录存在: {dir_path}")
+            os.makedirs(dir_path, exist_ok=True)
+            
+            # 添加调试日志
+            logger.debug(f"正在保存记忆文件: {file_path}")
+            logger.debug(f"记忆条数: {len(memories)}")
+            
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(memories, f, ensure_ascii=False, indent=2)
+                logger.debug(f"记忆文件保存成功: {file_path}")
                 return True
         except Exception as e:
             logger.error(f"保存记忆文件出错: {file_path}, {e}")
+            import traceback
+            logger.error(f"错误详情: {traceback.format_exc()}")
             return False
             
     def load_memories(self, user_id: int, group_id: Optional[int] = None) -> List[Dict[str, Any]]:
@@ -98,6 +110,41 @@ class MemoryManager:
                 logger.error(f"清除记忆文件出错: {file_path}, {e}")
                 return False
         return True
+        
+    def remove_specific_memory(self, user_id: int, user_content: str, assistant_content: str, group_id: Optional[int] = None) -> bool:
+        """从记忆中移除特定的用户消息和对应的回复"""
+        if not self.enabled:
+            return False
+        
+        file_path = self._get_memory_file(user_id, group_id)
+        memories = self._load_memories_from_file(file_path)
+        
+        # 如果没有记忆，直接返回
+        if not memories:
+            return True
+            
+        # 查找并移除特定内容的记忆
+        # 我们需要同时移除用户的消息和助手的回复
+        i = 0
+        removed = False
+        while i < len(memories) - 1:  # -1 是因为我们每次需要检查两条消息
+            if (memories[i]["role"] == "user" and memories[i]["content"] == user_content and
+                memories[i+1]["role"] == "assistant" and memories[i+1]["content"] == assistant_content):
+                # 找到匹配的消息，移除这两条
+                memories.pop(i)  # 移除用户消息
+                memories.pop(i)  # 移除助手回复（之前的i+1，移除后索引变为i）
+                removed = True
+                logger.debug(f"已从记忆中移除特定对话 - 用户: {user_id}{f', 群: {group_id}' if group_id else ''}")
+                break
+            i += 1
+        
+        if removed:
+            # 保存修改后的记忆
+            success = self._save_memories_to_file(file_path, memories)
+            return success
+        else:
+            logger.debug(f"未找到要移除的特定对话 - 用户: {user_id}{f', 群: {group_id}' if group_id else ''}")
+            return False
         
     def format_memories_for_prompt(self, memories: List[Dict[str, Any]]) -> str:
         formatted = ""
