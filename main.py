@@ -1,10 +1,30 @@
 import asyncio
 import signal
 import sys
+import argparse
 from loguru import logger
 from src.bot import BettQQBot
 from src.plugins.chat import ChatPlugin
-from src.utils.config import load_config
+from src.utils.config import load_config as utils_load_config
+from src.utils.crypto import compare_config_files
+import time
+import os
+import yaml
+from cryptography.fernet import Fernet
+
+# 创建命令行参数解析器
+parser = argparse.ArgumentParser(description='BettQQBot启动器')
+parser.add_argument('--debug', action='store_true', help='启用调试模式')
+args = parser.parse_args()
+
+# 配置日志格式
+logger.remove()
+logger.add(
+    sys.stderr,
+    format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+    level="DEBUG" if args.debug else "INFO",
+    colorize=True,
+)
 
 # 全局变量，用于中断主循环
 shutdown_event = asyncio.Event()
@@ -56,35 +76,65 @@ async def shutdown(bot: BettQQBot, signal=None):
     import os
     os._exit(0)  # 使用os._exit强制退出
 
+
 def handle_exception(loop, context):
     """处理未捕获的异常"""
     msg = context.get("exception", context["message"])
     logger.error(f"未捕获的异常: {msg}")
 
+def load_config():
+    """加载配置文件"""
+    logger.info("正在加载配置文件...")
+    try:
+        config = utils_load_config()
+        return config
+    except Exception as e:
+        logger.error(f"加载配置文件时出错: {e}")
+        sys.exit(1)
+
+def init_logger():
+    """初始化日志系统"""
+    # 设置日志级别
+    if args.debug:
+        logger.level("DEBUG")
+        logger.info("调试模式已启用，日志级别设置为 DEBUG")
+    else:
+        logger.level("INFO")
+        logger.info("调试模式已禁用，日志级别设置为 INFO")
+    
+    # 添加文件处理器
+    logger.add("logs/bot_{time}.log", rotation="500 MB", compression="zip", retention="10 days")
+
 async def main():
     """主函数"""
+    # 初始化日志
+    init_logger()
+
     # 加载配置
-    config = load_config("config.yaml")
+    config = load_config()
     
+    # 打印启动信息
+    logger.info("BettQQBot 正在启动...")
+    
+    # 加载插件
+    logger.info("正在加载插件...")
+    bot = BettQQBot(config)
+    
+    # 初始化机器人
+    logger.info("正在初始化机器人...")
+    await bot.initialize()
+
     # 设置日志级别
-    debug_enabled = config.get("features", {}).get("chat", {}).get("debug", False)
-    if debug_enabled:
+    if args.debug:
         logger.info("调试模式已启用，日志级别设置为 DEBUG")
-        logger.remove()
-        logger.add(sys.stderr, level="DEBUG")
     else:
         logger.info("调试模式已禁用，日志级别设置为 INFO")
-        logger.remove()
-        logger.add(sys.stderr, level="INFO")
     
     # 设置信号处理器
     signal.signal(signal.SIGINT, signal_handler)
     if hasattr(signal, "SIGTERM"):  # Windows 环境可能没有 SIGTERM
         signal.signal(signal.SIGTERM, signal_handler)
-    
-    # 初始化机器人
-    bot = BettQQBot("config.yaml")
-    
+
     # 启动机器人
     try:
         await bot.start()
@@ -100,13 +150,15 @@ async def main():
     finally:
         await shutdown(bot)
 
+
 if __name__ == "__main__":
-    logger.success("""
+    # 启动LOGO
+    logger.success(f"""
   ____       _   _      ___    ___    ____        _   
  | __ )  ___| |_| |_   / _ \  / _ \  | __ )  ___ | |_ 
- |  _ \\ / _ \\ __| __| | | | | | | | | |  _ \\ / _ \\| __|
+ |  _ \\ / _ \\ __| __| | | | | | | | | |  _ \\ / _ \| __|
  | |_) |  __/ |_| |_  | |_| | | |_| | | |_) | (_) | |_ 
- |____/ \\___/\\__|\\__|  \\__\\_\\ \\__\\_\\ |____/ \\___/ \\__|
+ |____/ \\___/\__|\__|  \__\_\\ \\__\_\\ |____/ \___/ \__|
 
     make by Ciallo喵喵
     QQ:3688442118
@@ -120,6 +172,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("程序已退出")
+        sys.exit(0)
     except Exception as e:
         logger.error(f"程序崩溃: {e}")
-        sys.exit(1) 
+        sys.exit(1)

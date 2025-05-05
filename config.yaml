@@ -1,110 +1,136 @@
+# 机器人基础配置 (兼容Windows和Linux)
 bot:
   napcat:
-    host: "127.0.0.1"  # 或者使用实际的 IP 地址
-    port: 3001         # NapCat 的实际端口
-    access_token: ""  # NapCat 的 token，不需要前缀Bearer
+    host: "127.0.0.1"  # Napcat服务地址，兼容所有平台
+    port: 3001  # Napcat服务端口，兼容所有平台
+    access_token: "your_access_token"  # Napcat访问令牌
+    # Windows特定配置
+    windows:
+      service_name: "NapcatService"  # Windows服务名称
+    # Linux特定配置  
+    linux:
+      systemd_service: "napcat.service"  # Linux systemd服务名称
 
   admin:
-    super_users: []  # 超级管理员QQ号列表
-    group_admins: [] # 群管理员QQ号列表
+    super_users: [123456789]  # 超级管理员QQ号列表
+    group_admins: []  # 群管理员列表
 
+# 功能配置 (兼容Windows和Linux)
 features:
-  chat:
-    enabled: true
-    provider: "openrouter"  # 可选: openai, openrouter
-    debug: false  # 是否启用调试模式，开启后会输出详细日志
-    openai:
-      api_key: ""  # OpenAI API密钥
-      model: ""
-      max_tokens: 6000
-      temperature: 0.7
-    openrouter:
-      api_key: ""  # OpenRouter API密钥
-      model: ""
-      site_url: ""  # 你的网站URL（可选）
-      site_name: ""  # 你的网站名称（可选）
-      max_tokens: 6000
-      temperature: 0.7
-      # 添加备用模型列表，当主模型触发速率限制时使用
-      fallback_models:
-        - ""
-        - ""
-        - ""
-        - ""
-        - ""
-    system_prompt: ""  # AI的人设提示词
-    access_control:
-      enabled: true  # 是否启用访问控制
-      whitelist_enabled: false  # 是否启用白名单
-      blacklist_enabled: false  # 是否启用黑名单
-      allowed_groups: []  # 允许使用的群号列表，为空表示允许所有群
-      allowed_friends: []  # 允许使用的好友QQ号列表，为空表示允许所有好友
-      blacklist_groups: []  # 禁止使用的群号列表
-      blacklist_users: []  # 禁止使用的用户QQ号列表
+  session:
+    host: "127.0.0.1"  # 会话服务地址，兼容所有平台
+    port: 3001  # 会话服务端口，兼容所有平台
+    access_token: "your_access_token"  # 会话访问令牌
+    # 路径配置使用正斜杠，兼容Windows和Linux
+    log_dir: "logs/"  # 日志目录
+    data_dir: "data/"  # 数据目录
 
-  sign_in:
-    enabled: true
+  sign_in:  # 签到功能配置
+    enabled: true  # 是否启用签到功能
     rewards:
-      min: 0  # 最小积分
-      max: 10  # 最大积分
-
-  memory:
-    enabled: true
-    max_history: 40  # 修改这个数字来调整保存的记忆条数
-    save_path: "data/memories"  # 记忆存储路径
-
-  # 新增自定义命令配置
+      min: 0  # 最小奖励值
+      max: 10  # 最大奖励值
+    data_file: "data/sign_in.json"  # 签到数据存储路径
+    
+  chat:
+    enabled: true  # 是否启用聊天功能
+    provider: "custom"  # AI服务提供商
+    debug: false  # 是否启用调试模式
+    custom:
+      api_key: ""  # 自定义AI服务的API密钥
+      ai_endpoint: ""  # 自定义AI服务的URL地址
+      model: "default-model"  # 主要使用的模型
+      max_tokens: 2000  # 每次响应的最大token数
+      temperature: 0.7  # 响应创造性程度
+      fallback_models: []  # 备用模型列表
+    system_prompt: |  # 系统提示词
+      你是一个智能助手，请用专业且友好的方式回答问题。
+    presets:  # 预设提示词
+      - |
+        这是一个预设的提示词示例，用于特定场景的对话。
+    access_control:
+      enabled: true
+      whitelist_enabled: false
+      blacklist_enabled: false
+      allowed_groups: []
+      allowed_friends: []
+      blacklist_groups: []
+      blacklist_users: []
+# 命令配置
   commands:
-    enabled: true  # 是否启用命令功能
-    prefix: ""  # 命令前缀，空字符串表示无需前缀
-    case_sensitive: false  # 是否区分大小写
+    enabled: true
+    prefix: ""
+    case_sensitive: false
     commands:
-      - name: "签到"  # 命令名称
-        enabled: true  # 是否启用此命令
-        plugin: "sign_in"  # 处理此命令的插件
-        function: "sign_in"  # 插件中处理此命令的函数
-        aliases: ["打卡", "check in"]  # 此命令的别名
-        description: "每日签到，获取积分"  # 命令描述
+      - name: "model"
+        enabled: true
+        plugin: "chat"
+        function: "model"
+        aliases: ["模型", "切换模型"]
+        description: "切换AI模型 (仅管理员)"
+        admin_only: true
         
-      - name: "帮助"  # 命令名称
-        enabled: true  # 是否启用此命令
-        plugin: "basic"  # 处理此命令的插件
-        function: "show_help"  # 插件中处理此命令的函数
-        aliases: ["help", "菜单"]  # 此命令的别名
-        description: "显示帮助信息"  # 命令描述
+      - name: "签到"
+        enabled: true
+        plugin: "sign_in"
+        function: "sign_in"
+        aliases: ["打卡", "check in"]
+        description: "每日签到，获取积分"
         
-      - name: "我的积分"  # 命令名称
-        enabled: true  # 是否启用此命令
-        plugin: "sign_in"  # 处理此命令的插件
-        function: "show_points"  # 插件中处理此命令的函数
-        aliases: ["积分", "points", "查询积分"]  # 此命令的别名
-        description: "查询自己的积分"  # 命令描述
+      - name: "帮助"
+        enabled: true
+        plugin: "basic"
+        function: "show_help"
+        aliases: ["help", "菜单"]
+        description: "显示帮助信息"
         
-      - name: "清除记忆"  # 命令名称
-        enabled: true  # 是否启用此命令
-        plugin: "chat"  # 处理此命令的插件
-        function: "clear_memory"  # 插件中处理此命令的函数
-        aliases: ["忘记", "forget"]  # 此命令的别名
-        description: "清除与你的聊天记忆"  # 命令描述
-        admin_only: false  # 是否仅管理员可用
+      - name: "我的积分"
+        enabled: true
+        plugin: "sign_in"
+        function: "show_points"
+        aliases: ["积分", "points", "查询积分"]
+        description: "查询自己的积分"
         
-      - name: "撤回"  # 命令名称
-        enabled: true  # 是否启用此命令
-        plugin: "chat"  # 处理此命令的插件
-        function: "withdraw"  # 插件中处理此命令的函数
-        aliases: ["withdraw"]  # 此命令的别名
-        description: "撤回指定编号的消息"  # 命令描述
-        admin_only: false  # 是否仅管理员可用
+      - name: "清除记忆"
+        enabled: true
+        plugin: "chat"
+        function: "clear_memory"
+        aliases: ["忘记", "forget"]
+        description: "清除与你的聊天记忆"
+        admin_only: true
         
-      - name: "测试"  # 命令名称
-        enabled: true  # 是否启用此命令
-        plugin: "basic"  # 处理此命令的插件
-        function: "test"  # 插件中处理此命令的函数
-        aliases: ["test"]  # 此命令的别名
-        description: "测试命令功能是否正常"  # 命令描述
-        admin_only: false  # 是否仅管理员可用
+      - name: "撤回"
+        enabled: true
+        plugin: "chat"
+        function: "withdraw"
+        aliases: ["withdraw"]
+        description: "撤回指定编号的消息"
+        admin_only: true
+
+      - name: "发送信息"
+        enabled: true
+        plugin: "chat"
+        function: "send"
+        aliases: ["send"]
+        description: "发送消息，用法: /send <消息>，/send friend <QQ> <消息>，/send group <群号> <消息>"
+        admin_only: true
         
-      # 新增额外功能命令
+      - name: "chat"
+        enabled: true
+        plugin: "chat"
+        function: "chat"
+        aliases: []
+        description: "聊天相关操作，包括发送消息、查看历史等"
+        admin_only: true
+        
+      - name: "测试"
+        enabled: true
+        plugin: "basic"
+        function: "test"
+        aliases: ["test"]
+        description: "测试命令功能是否正常"
+        admin_only: true
+        
       - name: "天气"
         enabled: true
         plugin: "extra_features"
@@ -175,14 +201,59 @@ features:
         aliases: ["set_location"]
         description: "设置默认天气查询位置，示例：设置位置 北京"
 
-      - name: "作者信息"
-        enabled: false
+      - name: "Ciallo"
+        enabled: true
         plugin: "none"
         function: "none"
         aliases: ["none"]
         description: "作者Ciallo QQ:3688442118"
 
+      - name: "排行榜"
+        enabled: true
+        plugin: "rank"
+        function: "rank"
+        aliases: ["rank", "排名"]
+        description: "查看排行榜，可选参数：积分、好感度、签到"
+
+      - name: "think"
+        enabled: true
+        plugin: "chat"
+        function: "think"
+        aliases: ["思考"]
+        description: "显示/隐藏AI思考过程 (仅管理员)"
+        admin_only: true
+        
+      - name: "积分排行"
+        enabled: true
+        plugin: "rank"
+        function: "points_rank"
+        aliases: ["积分榜", "points_rank"]
+        description: "查看积分排行榜"
+        
+      - name: "好感度排行"
+        enabled: true
+        plugin: "rank"
+        function: "favor_rank"
+        aliases: ["好感榜", "favor_rank"]
+        description: "查看好感度排行榜"
+        
+      - name: "签到排行"
+        enabled: true
+        plugin: "rank"
+        function: "checkin_rank"
+        aliases: ["签到榜", "checkin_rank"]
+        description: "查看签到排行榜"
+
+  rank:
+    points_file: "data/sign_in/points.json"
+    favor_file: "data/sign_in/favor.json"
+    checkin_file: "data/sign_in/checkin.json"
+    default_limit: 90
+    max_limit: 100
+
 plugins:
+  - name: "basic"
+    enabled: true
   - name: "basic"  # 基础功能
     enabled: true
   - name: "chat"   # 聊天功能
@@ -190,4 +261,6 @@ plugins:
   - name: "sign_in"  # 签到功能
     enabled: true
   - name: "extra_features" # 额外功能
-    enabled: true 
+    enabled: true
+  - name: "rank"  # 排行榜功能
+    enabled: true

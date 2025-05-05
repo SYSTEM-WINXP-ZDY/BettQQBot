@@ -51,30 +51,6 @@ python main.py
 
 配置文件 `config.yaml` 包含以下主要部分：
 
-```yaml
-bot:
-  napcat:
-    host: "127.0.0.1"  # NapCat 服务器地址
-    port: 8080         # 服务器端口
-    access_token: ""   # 访问令牌
-
-features:
-  chat:
-    enabled: true
-    openai_api_key: "" # OpenAI API 密钥
-    model: "gpt-3.5-turbo"
-    max_tokens: 2000
-    temperature: 0.7
-
-  sign_in:
-    enabled: true
-    rewards:
-      min: 10  # 最小积分
-      max: 50  # 最大积分
-```
-
-## 开发说明
-
 项目结构：
 ```
 BettQQBot/

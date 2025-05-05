@@ -40,13 +40,17 @@ class MessageHandler:
             # 尝试多种可能的token格式
             extra_headers["Authorization"] = f"{token}"
             extra_headers["access_token"] = token
-            logger.info(f"正在使用token: {token}")
+            logger.info(f"正在使用token: {'*' * (len(token) // 3)}***")  # 隐藏真实token
         
-        logger.info(f"正在连接到 WebSocket: {ws_url}")
+        # 隐藏token的WebSocket URL
+        masked_ws_url = ws_url
+        if token:
+            masked_ws_url = masked_ws_url.replace(token, '***********')
+        logger.info(f"正在连接到 WebSocket: {masked_ws_url}")
         
         try:
-            # 使用websockets 10.4的连接方式并传递额外的HTTP头
-            websocket = await websockets.connect(ws_url, extra_headers=extra_headers)
+            # 使用websockets 11.0+的连接方式并传递HTTP头
+            websocket = await websockets.connect(ws_url, headers=extra_headers)
             self.ws = websocket
             self.connected = True
             logger.success(f"WebSocket 连接成功！")
@@ -522,4 +526,4 @@ class MessageHandler:
                 
         except Exception as e:
             logger.error(f"执行调试命令时出错: {e}")
-            return f"执行调试命令时出错: {e}" 
+            return f"执行调试命令时出错: {e}"

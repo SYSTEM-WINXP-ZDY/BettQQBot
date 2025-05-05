@@ -30,11 +30,20 @@ class API:
             await self.session.close()
             self.session = None
             
+    async def initialize(self):
+        """初始化API连接"""
+        # 创建会话
+        await self._create_session()
+        
+        # 打印连接信息
+        logger.info("API 已初始化")
+        logger.debug("API 配置已加载")
+        
     async def call_api(self, action: str, **params):
         """通过WebSocket调用API"""
         # 使用WebSocket连接发送请求
         if not self.bot.handler.connected or not self.bot.handler.ws:
-            logger.error(f"WebSocket未连接，无法调用API: {action}")
+            logger.error(f"WebSocket未连接，无法调用API: {action}".replace("free", ""))
             return None
             
         echo = str(uuid.uuid4())
@@ -57,11 +66,11 @@ class API:
                 result = await asyncio.wait_for(future, timeout=self.api_timeout)
                 return result.get("data")
             except asyncio.TimeoutError:
-                logger.error(f"API调用超时: {action}")
+                logger.error(f"API调用超时: {action}".replace("free", ""))
                 self._echo_callbacks.pop(echo, None)
                 return None
         except Exception as e:
-            logger.error(f"API调用异常: {e}")
+            logger.error(f"API调用异常: {e}".replace("free", ""))
             self._echo_callbacks.pop(echo, None)
             return None
         
@@ -123,4 +132,46 @@ class API:
             flag=flag,
             approve=approve,
             remark=remark
-        ) 
+        )
+        
+    async def delete_msg(self, message_id: int) -> Dict[str, Any]:
+        """撤回消息
+        
+        Args:
+            message_id: 消息ID
+            
+        Returns:
+            Dict[str, Any]: API响应
+        """
+        return await self.call_api(
+            "delete_msg",
+            message_id=message_id
+        )
+        
+    async def send_like(self, user_id: int, times: int = 1) -> Dict[str, Any]:
+        """给用户发送点赞
+        
+        Args:
+            user_id: 用户QQ号 (可以是数字或字符串)
+            times: 点赞次数 (默认1次)
+            
+        Returns:
+            Dict[str, Any]: API响应
+        """
+        # 构造符合API要求的JSON payload
+        payload = {
+            "user_id": user_id,
+            "times": times
+        }
+        
+        # 循环发送单个点赞，确保每次都能成功
+        results = []
+        for _ in range(times):
+            result = await self.call_api("send_like", **payload)
+            if result is None or result.get("status") == "failed":
+                logger.error(f"点赞失败: {result}")
+                return None
+            results.append(result)
+            
+        # 返回最后一次成功的结果
+        return results[-1] if results else None

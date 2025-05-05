@@ -4,13 +4,18 @@ from .api import API
 from .handlers import MessageHandler
 from .utils.config import load_config
 from .plugins import PluginManager
+from .utils.user_manager import UserManager
+from .utils.message_manager import MessageManager
+from pathlib import Path
 
 class BettQQBot:
     def __init__(self, config_path: str):
         self.config = load_config(config_path)
+        self.message_manager = MessageManager()
         self.api = API(self)
         self.plugin_manager = PluginManager(self)
         self.handler = MessageHandler(self)
+        self.user_manager = UserManager(Path("data/users.json"))
         self.task = None
         
     async def start(self):
@@ -43,4 +48,19 @@ class BettQQBot:
         if hasattr(self, 'plugin_manager') and self.plugin_manager:
             await self.plugin_manager.unload_plugins()
             
-        logger.success("机器人已关闭") 
+        logger.success("机器人已关闭")
+
+    async def initialize(self):
+        """初始化机器人"""
+        logger.info("正在初始化机器人组件...")
+        
+        # 初始化API连接
+        await self.api.initialize()
+        
+        # 初始化用户管理器
+        await self.user_manager.load()
+        
+        # 初始化消息管理器
+        self.message_manager.initialize()
+        
+        logger.success("机器人组件初始化完成") 
